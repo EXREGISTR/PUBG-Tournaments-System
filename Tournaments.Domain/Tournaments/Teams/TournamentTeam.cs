@@ -48,7 +48,7 @@ public class TournamentTeam {
         RegistratorId = registratorId;
     }
 
-    public static TournamentTeam InvitedTeam(
+    public static TournamentTeam Invited(
         string tag, string title, string? logotypeUrl, 
         Region region, Guid originalTeamId, 
         IEnumerable<TournamentTeamMember> membersEnumerable) =>
@@ -57,7 +57,7 @@ public class TournamentTeam {
             TournamentTeamStatus.Invited,
             originalTeamId, null, membersEnumerable.ToList());
 
-    public static TournamentTeam RegisteredTeam(
+    public static TournamentTeam Registered(
         string tag, string title, string? logotypeUrl, Region region, Guid registratorId,
         IEnumerable<TournamentTeamMember> membersEnumerable) =>
         new TournamentTeam(

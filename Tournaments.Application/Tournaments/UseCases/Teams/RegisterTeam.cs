@@ -57,7 +57,7 @@ public static class RegisterTeam {
                     },
                     null));
             
-            var tournamentTeam = TournamentTeam.RegisteredTeam(
+            var tournamentTeam = TournamentTeam.Registered(
                 request.Tag, request.Title, request.LogotypeUrl, request.Region, registratorId, players);
             
             tournament.RegisterTeam(tournamentTeam);

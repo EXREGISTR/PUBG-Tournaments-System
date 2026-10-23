@@ -29,7 +29,7 @@ public static class InviteTeam {
         public async Task Handle(Request request, CancellationToken token) {
             var (tournamentId, teamId, overridenTag) = request;
             
-            Team? team = await teamsRepository.GetByIdWithTeams(teamId, token);
+            Team? team = await teamsRepository.GetByIdWithMembers(teamId, token);
             if (team == null) throw ExceptionFactories.Team.NotFound();
             
             var teamTag = overridenTag ?? team.Tag;
@@ -61,7 +61,7 @@ public static class InviteTeam {
                         },
                         player.Id));
             
-            var tournamentTeam = TournamentTeam.InvitedTeam(
+            var tournamentTeam = TournamentTeam.Invited(
                 teamTag, team.Title, team.LogotypeUrl, team.Region, team.Id, possiblePlayers);
             
             tournament.InviteTeam(tournamentTeam, userId);
