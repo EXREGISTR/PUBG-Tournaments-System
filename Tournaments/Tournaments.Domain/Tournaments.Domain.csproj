@@ -7,7 +7,7 @@
     </PropertyGroup>
     
     <ItemGroup>
-      <ProjectReference Include="..\ExceptionTools\ExceptionTools.csproj" />
+      <ProjectReference Include="..\..\Shared\ExceptionTools\ExceptionTools.csproj" />
     </ItemGroup>
     <ItemGroup>
       <PackageReference Include="DDD.SDK.Domain" Version="3.1.0" />
