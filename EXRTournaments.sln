@@ -1,0 +1,58 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tournaments.Domain", "Tournaments.Domain\Tournaments.Domain.csproj", "{2D1F213E-BC1C-446D-9A31-DF6AE9F421BF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tournaments", "Tournaments", "{C2AB4097-F50D-470F-B5CF-14C754E302EA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{2B76AA9A-36A2-4C33-8892-AE251C7073EF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExceptionTools", "ExceptionTools\ExceptionTools.csproj", "{A312F221-F690-4EA4-B9EF-B5CB27DDEC49}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GlobalExceptionHandler", "GlobalExceptionHandler\GlobalExceptionHandler.csproj", "{1A4FC8C6-9B4A-4065-968A-CAE0A3CC7253}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tournaments.Application", "Tournaments.Application\Tournaments.Application.csproj", "{9E4BAA48-A587-4168-B4A8-E394B7CEF879}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tournaments.Infrastructure", "Tournaments.Infrastructure\Tournaments.Infrastructure.csproj", "{05261E31-81FB-48DD-BEEE-970F1183836E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestProject", "TestProject\TestProject.csproj", "{C845B462-AB92-4561-B0D7-E0B1CF0CC48B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2D1F213E-BC1C-446D-9A31-DF6AE9F421BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D1F213E-BC1C-446D-9A31-DF6AE9F421BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D1F213E-BC1C-446D-9A31-DF6AE9F421BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D1F213E-BC1C-446D-9A31-DF6AE9F421BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A312F221-F690-4EA4-B9EF-B5CB27DDEC49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A312F221-F690-4EA4-B9EF-B5CB27DDEC49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A312F221-F690-4EA4-B9EF-B5CB27DDEC49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A312F221-F690-4EA4-B9EF-B5CB27DDEC49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A4FC8C6-9B4A-4065-968A-CAE0A3CC7253}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A4FC8C6-9B4A-4065-968A-CAE0A3CC7253}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A4FC8C6-9B4A-4065-968A-CAE0A3CC7253}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A4FC8C6-9B4A-4065-968A-CAE0A3CC7253}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E4BAA48-A587-4168-B4A8-E394B7CEF879}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E4BAA48-A587-4168-B4A8-E394B7CEF879}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E4BAA48-A587-4168-B4A8-E394B7CEF879}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E4BAA48-A587-4168-B4A8-E394B7CEF879}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05261E31-81FB-48DD-BEEE-970F1183836E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05261E31-81FB-48DD-BEEE-970F1183836E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05261E31-81FB-48DD-BEEE-970F1183836E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05261E31-81FB-48DD-BEEE-970F1183836E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C845B462-AB92-4561-B0D7-E0B1CF0CC48B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C845B462-AB92-4561-B0D7-E0B1CF0CC48B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C845B462-AB92-4561-B0D7-E0B1CF0CC48B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C845B462-AB92-4561-B0D7-E0B1CF0CC48B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2D1F213E-BC1C-446D-9A31-DF6AE9F421BF} = {C2AB4097-F50D-470F-B5CF-14C754E302EA}
+		{A312F221-F690-4EA4-B9EF-B5CB27DDEC49} = {2B76AA9A-36A2-4C33-8892-AE251C7073EF}
+		{1A4FC8C6-9B4A-4065-968A-CAE0A3CC7253} = {2B76AA9A-36A2-4C33-8892-AE251C7073EF}
+		{9E4BAA48-A587-4168-B4A8-E394B7CEF879} = {C2AB4097-F50D-470F-B5CF-14C754E302EA}
+		{05261E31-81FB-48DD-BEEE-970F1183836E} = {C2AB4097-F50D-470F-B5CF-14C754E302EA}
+		{C845B462-AB92-4561-B0D7-E0B1CF0CC48B} = {C2AB4097-F50D-470F-B5CF-14C754E302EA}
+	EndGlobalSection
+EndGlobal
