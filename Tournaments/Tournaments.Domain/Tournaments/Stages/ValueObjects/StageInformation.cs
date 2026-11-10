@@ -11,7 +11,6 @@ public record StageInformation {
     public GamePerspective GamePerspective { get; private init; }
     public int MatchesNumberPerDay { get; private init; }
     public int DaysNumber { get; private init; }
-    public IReadOnlyCollection<int>? MapsRotation { get; private init; }
     
     private StageInformation() { }
 
@@ -19,16 +18,21 @@ public record StageInformation {
         string title, 
         GamePerspective gamePerspective, 
         int matchesNumberPerDay, 
-        int daysNumber,
-        IReadOnlyCollection<int>? mapsRotation) {
-        StageInformationValidator.EnsureValid(title, matchesNumberPerDay, daysNumber, mapsRotation);
+        int daysNumber) {
+        StageInformationValidator.EnsureValid(title, matchesNumberPerDay, daysNumber);
         
         Title = title;
         GamePerspective = gamePerspective;
         MatchesNumberPerDay = matchesNumberPerDay;
         DaysNumber = daysNumber;
-        MapsRotation = mapsRotation;
     }
+
+    public static StageInformation Default => new StageInformation {
+        Title = "New Stage",
+        GamePerspective = GamePerspective.Tpp,
+        MatchesNumberPerDay = 5,
+        DaysNumber = 3
+    };
 }
 
 internal static class StageInformationValidator {
@@ -37,18 +41,12 @@ internal static class StageInformationValidator {
     public record struct Parameters(
         string Title,
         int MatchesNumberPerDay,
-        int DaysNumber,
-        IReadOnlyCollection<int>? MapsRotation);
+        int DaysNumber);
 
     private class Validator : AbstractValidator<Parameters> {
         public Validator() {
             RuleFor(x => x.Title)
                 .Length(3, 50);
-
-            RuleFor(x => x.MapsRotation)
-                .Must(mapsRotation => 
-                    mapsRotation == null ||
-                    mapsRotation.Count is >= 1 and <= 12);
 
             RuleFor(x => x.DaysNumber)
                 .GreaterThanOrEqualTo(1)
@@ -60,6 +58,6 @@ internal static class StageInformationValidator {
         }
     }
 
-    public static void EnsureValid(string title, int matchesNumberPerDay, int daysNumber, IReadOnlyCollection<int>? mapsRotation) =>
-        validator.Validate(new Parameters(title, matchesNumberPerDay, daysNumber, mapsRotation));
+    public static void EnsureValid(string title, int matchesNumberPerDay, int daysNumber) =>
+        validator.Validate(new Parameters(title, matchesNumberPerDay, daysNumber));
 }

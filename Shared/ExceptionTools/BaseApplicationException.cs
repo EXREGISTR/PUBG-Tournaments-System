@@ -18,4 +18,9 @@ public abstract class BaseApplicationException : Exception {
         Code = code;
         Details = details;
     }
+
+    protected BaseApplicationException() : base(string.Empty) {
+        Code = string.Empty;
+        Details = null;
+    }
 }

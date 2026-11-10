@@ -14,7 +14,7 @@ internal class TournamentStageBaseConfiguration : IEntityTypeConfiguration<Tourn
             .ValueGeneratedNever();
 
         builder.ComplexProperty(
-            x => x.Info, 
+            x => x.Information, 
             childBuilder => childBuilder.ToJson());
         
         builder.ComplexProperty(

@@ -5,7 +5,7 @@ public class ValidationException : BaseApplicationException {
 
     public override ErrorType Type => ErrorType.Validation;
     
-    public ValidationException(IDictionary<string, string[]> errors) : base(string.Empty, string.Empty, null) {
+    public ValidationException(IDictionary<string, string[]> errors) {
         if (errors.Count == 0) {
             throw new ArgumentException("No errors found");
         }

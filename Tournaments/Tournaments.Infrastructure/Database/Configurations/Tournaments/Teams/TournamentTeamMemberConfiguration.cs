@@ -1,4 +1,4 @@
-﻿using Domain.Tournaments.Teams.TeamMembers;
+﻿using Domain.Tournaments.Teams.Members;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -22,6 +22,6 @@ internal class TournamentTeamMemberConfiguration : IEntityTypeConfiguration<Tour
             .HasConversion<string>();
 
         builder.Property(x => x.TournamentTeamId);
-        builder.Property(x => x.OriginalPlayerId);
+        builder.Property(x => x.OriginalTeamMemberId);
     }
 }

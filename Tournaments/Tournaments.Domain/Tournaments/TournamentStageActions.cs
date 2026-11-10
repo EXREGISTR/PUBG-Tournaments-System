@@ -1,18 +1,20 @@
 ﻿using Domain.Common;
 using Domain.Common.Extensions;
-using Domain.Tournaments.Enums;
+using Domain.Tournaments.OrganizerPermissions;
 using Domain.Tournaments.Stages;
 using Domain.Tournaments.Stages.Matches;
 using Domain.Tournaments.Stages.QualificationRanges;
 using Domain.Tournaments.Stages.Teams;
 using Domain.Tournaments.Stages.ValueObjects;
+using Domain.Tournaments.Teams;
 
 namespace Domain.Tournaments;
 
 public partial class Tournament {
-    #region Adding, Deleting, Editing, Moving Stages
-    public void AddStageAfter(TournamentStageBase newStage, Guid? previousStageId, DateTime utcNow) {
+    #region Stages Management
+    public void AddStageAfter(TournamentStageBase newStage, Guid? previousStageId, Guid organizerId, DateTime utcNow) {
         EnsureDraftAndCanEdit(utcNow);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.EditTournament);
         
         const int maxStagesCount = 16;
         
@@ -35,8 +37,9 @@ public partial class Tournament {
         LastEditedAt = utcNow;
     }
     
-    public void MoveStageAfter(Guid stageId, Guid? previousStageId, DateTime utcNow) {
+    public void MoveStageAfter(Guid stageId, Guid? previousStageId, Guid organizerId, DateTime utcNow) {
         EnsureDraftAndCanEdit(utcNow);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.EditTournament);
         
         if (stages.Count == 0) {
             throw ExceptionFactories.Tournament.NotFound("NoStages", "No stages found");
@@ -65,8 +68,9 @@ public partial class Tournament {
         LastEditedAt = utcNow;
     }
     
-    public void DeleteStage(Guid stageId, DateTime utcNow) {
+    public void DeleteStage(Guid stageId, Guid organizerId, DateTime utcNow) {
         EnsureDraftAndCanEdit(utcNow);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.EditTournament);
         
         if (stages.Count == 0) return;
         
@@ -93,8 +97,9 @@ public partial class Tournament {
         LastEditedAt = utcNow;
     }
     
-    public void EditCommonStage(Guid stageId, int maxTeamsCount, DateTime utcNow) {
+    public void EditCommonStage(Guid stageId, int maxTeamsCount, Guid organizerId, DateTime utcNow) {
         EnsureDraftAndCanEdit(utcNow);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.EditTournament);
 
         GetCommonStage(stageId)
             .Edit(maxTeamsCount);
@@ -102,8 +107,9 @@ public partial class Tournament {
         LastEditedAt = utcNow;
     }
     
-    public void EditGroupStage(Guid stageId, int groupsCount, int groupSize, DateTime utcNow) {
+    public void EditGroupStage(Guid stageId, int groupsCount, int groupSize, Guid organizerId, DateTime utcNow) {
         EnsureDraftAndCanEdit(utcNow);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.EditTournament);
 
         GetGroupStage(stageId)
             .Edit(groupsCount, groupSize);
@@ -111,8 +117,9 @@ public partial class Tournament {
         LastEditedAt = utcNow;
     }
 
-    public void EditPointsCalculationRules(Guid stageId, PointsCalculationRules rules, DateTime utcNow) {
+    public void EditStagePointsCalculationRules(Guid stageId, PointsCalculationRules rules, Guid organizerId, DateTime utcNow) {
         EnsureDraftAndCanEdit(utcNow);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.EditTournament);
 
         GetStage(stageId)
             .PointsCalculationRules = rules;
@@ -120,11 +127,12 @@ public partial class Tournament {
         LastEditedAt = utcNow;
     }
 
-    public void EditStageInfo(Guid stageId, StageInformation stageInfo, DateTime utcNow) {
+    public void EditStageInfo(Guid stageId, StageInformation stageInfo, Guid organizerId, DateTime utcNow) {
         EnsureDraftAndCanEdit(utcNow);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.EditTournament);
 
         GetStage(stageId)
-            .Info = stageInfo;
+            .Information = stageInfo;
 
         LastEditedAt = utcNow;
     }
@@ -161,48 +169,62 @@ public partial class Tournament {
     }
     #endregion
 
-    #region Adding, Deleting, MovingToOtherGroup Team
-    public void AddTeamForStage(Guid stageId, TournamentStageTeam team) {
+    #region Teams Management
+    public void AddTeamForStage(Guid stageId, TournamentStageTeam team, Guid organizerId) {
+        EnsureHasPermission(organizerId, OrganizerPermissionType.TeamsManagement);
         EnsureInclusiveBetweenStates(
             Rules.IsSupportRegistration() ? TournamentState.RegistrationClosed : TournamentState.Published,
-            TournamentState.Completed);
-
-        var tournamentTeamId = team.TournamentTeamId;
-        var existsTeam = teams.Any(x => x.Id == tournamentTeamId);
-
-        if (!existsTeam) {
-            throw ExceptionFactories.TournamentTeam.NotFound(("Id", tournamentTeamId));
+            TournamentState.InProcess);
+        
+        if (GetTeam(team.TournamentTeamId).Status == TournamentTeamStatus.Disqualified) {
+            throw ExceptionFactories.TournamentTeam.Conflict("TeamIsDisqualified", "You can't add disqualified team for stage");
         }
         
         GetStage(stageId)
             .AddTeam(team);
     }
 
-    public void DeleteTeamFromStage(Guid stageId, Guid tournamentTeamId) {
+    public void DeleteTeamFromStage(Guid stageId, Guid tournamentTeamId, Guid organizerId) {
+        EnsureHasPermission(organizerId, OrganizerPermissionType.TeamsManagement);
         EnsureInclusiveBetweenStates(
             Rules.IsSupportRegistration() ? TournamentState.RegistrationClosed : TournamentState.Published,
-            TournamentState.Completed);
+            TournamentState.InProcess);
         
         GetStage(stageId)
             .DeleteTeam(tournamentTeamId);
     }
     
-    public void MoveTeamToOtherGroupInStage(Guid stageId, Guid tournamentTeamId, int otherGroupNumber) {
+    public void MoveTeamToOtherGroupInStage(Guid stageId, Guid tournamentTeamId, int otherGroupNumber, Guid organizerId) {
+        EnsureHasPermission(organizerId, OrganizerPermissionType.TeamsManagement);
         EnsureInclusiveBetweenStates(
             Rules.IsSupportRegistration() ? TournamentState.RegistrationClosed : TournamentState.Published,
-            TournamentState.Completed);
+            TournamentState.InProcess);
+        
+        if (GetTeam(tournamentTeamId).Status == TournamentTeamStatus.Disqualified) {
+            throw ExceptionFactories.TournamentTeam.Conflict("TeamIsDisqualified", "You can't move item");
+        }
         
         GetGroupStage(stageId)
             .MoveTeamToOtherGroup(tournamentTeamId, otherGroupNumber);
     }
-    #endregion
-
-    #region Distributing Teams For Groups
-    public void DistributeTeamsForGroups(Guid stageId, IReadOnlyList<IReadOnlyCollection<Guid>> teamsDistributionForGroups) {
-        EnsureState(Rules.IsSupportRegistration()
-            ? TournamentState.RegistrationClosed 
-            : TournamentState.Published);
-
+    
+    public void DistributeQualifiedTeamsRandomlyInGroupStage(Guid stageId, Guid organizerId) {
+        EnsureHasPermission(organizerId, OrganizerPermissionType.TeamsManagement);
+        EnsureState(TournamentState.InProcess);
+        
+        var stage = GetGroupStage(stageId);
+        stage.DistributeTeamsRandomly(stage.Teams.Select(x => x.TournamentTeamId).ToArray());
+    }
+    
+    public void DistributeTeamsForGroups(
+        Guid stageId,
+        IReadOnlyList<IReadOnlyCollection<Guid>> teamsDistributionForGroups,
+        Guid organizerId) {
+        EnsureHasPermission(organizerId, OrganizerPermissionType.TeamsManagement);
+        EnsureInclusiveBetweenStates(
+            Rules.IsSupportRegistration() ? TournamentState.RegistrationClosed : TournamentState.Published,
+            TournamentState.InProcess);
+        
         var stage = GetGroupStage(stageId);
         
         var teamIdsSet = teams.Select(x => x.Id).ToHashSet();
@@ -219,46 +241,43 @@ public partial class Tournament {
         stage.DistributeTeams(teamsDistributionForGroups);
     }
     
-    public void DistributeRegisteredTeamsRandomlyInGroupStage(Guid stageId) {
-        EnsureState(TournamentState.RegistrationClosed);
-        EnsureSupportRegistration();
+    public void DistributeTeamsRandomlyInGroupStage(Guid stageId, Guid organizerId) {
+        EnsureHasPermission(organizerId, OrganizerPermissionType.TeamsManagement);
+        EnsureInclusiveBetweenStates(
+            Rules.IsSupportRegistration() ? TournamentState.RegistrationClosed : TournamentState.Published,
+            TournamentState.InProcess);
         
-        DistributeTeamsRandomlyInGroupStage(stageId);
-    }
-
-    public void DistributeInvitedTeamsRandomlyInGroupStage(Guid stageId) {
-        EnsureState(TournamentState.Published);
-        EnsureIsNotSupportRegistration();
+        EnsureHasPermission(organizerId, OrganizerPermissionType.TeamsManagement);
         
-        DistributeTeamsRandomlyInGroupStage(stageId);
-    }
-
-    private void DistributeTeamsRandomlyInGroupStage(Guid stageId) =>
         GetGroupStage(stageId)
             .DistributeTeamsRandomly(
                 teams.Select(x => x.Id).ToList());
+    }
     #endregion
 
-    #region Adding, Editing Match Results
-    public void AddMatchResults(Guid stageId, Match match, bool isLastMatch) {
+    #region Matches Management
+    public void LoadMatch(Guid stageId, Match match, bool isLastMatch, Guid organizerId) {
+        EnsureHasPermission(organizerId, OrganizerPermissionType.MatchesManagement);
         EnsureInclusiveBetweenStates(TournamentState.InProcess, TournamentState.Completed);
         
         GetStage(stageId)
-            .AddMatchResults(match, isLastMatch);
+            .LoadMatch(match, isLastMatch);
     }
     
-    public void EditMatchMap(Guid stageId, Guid matchId, int mapId) {
+    public void EditMatchMap(Guid stageId, Guid matchId, int mapId, Guid organizerId) {
+        EnsureHasPermission(organizerId, OrganizerPermissionType.MatchesManagement);
         EnsureInclusiveBetweenStates(TournamentState.InProcess, TournamentState.Completed);
         
-        GetGroupStage(stageId)
+        GetStage(stageId)
             .GetMatchResults(matchId)
             .MapId = mapId;
     }
     #endregion
 
-    #region Adding, Editing, Deleting Qualification ranges
-    public void AddQualificationRange(Guid stageId, QualificationRange newRange, DateTime utcNow) {
+    #region Qualification Management
+    public void AddQualificationRange(Guid stageId, QualificationRange newRange, Guid organizerId, DateTime utcNow) {
         EnsureDraftAndCanEdit(utcNow);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.EditTournament);
         
         var stage = GetStage(stageId);
         EnsureNextStageIsAfterStage(stage.Order, newRange.NextStageId);
@@ -269,27 +288,36 @@ public partial class Tournament {
 
     public void EditQualificationRange(
         Guid stageId, Guid qualificationRangeId,
-        int fromPlace, int placesNumber, 
-        QualificationRangeColor color, Guid nextStageId,
+        int fromPlace, int toPlace, 
+        QualificationRangeColor color, Guid nextStageId, Guid organizerId,
         DateTime utcNow) {
         EnsureDraftAndCanEdit(utcNow);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.EditTournament);
         
         var stage = GetStage(stageId);
         EnsureNextStageIsAfterStage(stage.Order, nextStageId);
-        stage.EditQualificationRange(qualificationRangeId, fromPlace, placesNumber, color, nextStageId);
+        stage.EditQualificationRange(qualificationRangeId, fromPlace, toPlace, color, nextStageId);
 
         LastEditedAt = utcNow;
     }
 
-    public void DeleteQualificationRange(Guid stageId, Guid qualificationRangeId, DateTime utcNow) {
+    public void DeleteQualificationRange(Guid stageId, Guid qualificationRangeId, Guid organizerId, DateTime utcNow) {
         EnsureDraftAndCanEdit(utcNow);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.EditTournament);
         
         GetStage(stageId)
             .DeleteQualificationRange(qualificationRangeId);
         
         LastEditedAt = utcNow;
     }
-    
+
+    public void QualifyTeamsToNextStages(Guid stageId) {
+        EnsureInProcess();
+        
+        GetStage(stageId)
+            .QualifyToNextStages();
+    }
+     
     private void EnsureNextStageIsAfterStage(int order, Guid nextStageId) {
         var nextStage = GetStage(nextStageId);
         

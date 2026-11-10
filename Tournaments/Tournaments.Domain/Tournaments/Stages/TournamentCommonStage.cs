@@ -1,5 +1,4 @@
 ﻿using Domain.Common;
-using Domain.Tournaments.Stages.Matches;
 using Domain.Tournaments.Stages.ValueObjects;
 
 namespace Domain.Tournaments.Stages;
@@ -9,7 +8,7 @@ public class TournamentCommonStage : TournamentStageBase {
     
     private TournamentCommonStage() { }
 
-    public TournamentCommonStage(StageInformation info, int maxTeamsCount) : base(info) {
+    public TournamentCommonStage(StageInformation information, int maxTeamsCount) : base(information) {
         EnsureValid(maxTeamsCount);
         
         MaxTeamsCount = maxTeamsCount;
@@ -26,7 +25,7 @@ public class TournamentCommonStage : TournamentStageBase {
     protected override void EnsureValidMatchParticipatedGroups(IReadOnlyCollection<int>? participatedGroups) {
         if (participatedGroups != null) {
             throw ExceptionFactories.Match.Validation(
-                nameof(Match.ParticipatedGroups), 
+                "Results.ParticipatedGroups", 
                 "This field should be null because stage is not support groups");
         }
     }

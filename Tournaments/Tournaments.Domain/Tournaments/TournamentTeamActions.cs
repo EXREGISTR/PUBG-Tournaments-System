@@ -1,37 +1,22 @@
 ﻿using Domain.Common;
-using Domain.Tournaments.Enums;
+using Domain.Common.Extensions;
 using Domain.Tournaments.OrganizerPermissions;
 using Domain.Tournaments.Teams;
+using Domain.Tournaments.Teams.Members;
 
 namespace Domain.Tournaments;
 
 public partial class Tournament {
     public void RegisterTeam(TournamentTeam team) {
-        if (DeletedAt != null) return;
-        
-        if (Rules.IsNotSupportRegistration()) {
-            throw ExceptionFactories.Tournament.Conflict(
-                "IsNotSupportRegistration",
-                "You can't register team on tournament without open registration");
-        }
-            
-        if (State != TournamentState.RegistrationOpened) {
-            throw ExceptionFactories.Tournament.Conflict(
-                "RegistrationIsNotOpened",
-                "Registration is not opened");
-        }
+        EnsureSupportRegistration();
+        EnsureState(TournamentState.RegistrationOpened);
         
         if (teams.Count == Rules.RegistrationInfo!.MaxTeamsCount) {
             throw ExceptionFactories.Tournament.Conflict("NoMorePlaces", "No more places");
         }
         
-        var existsByTag = teams.Any(x => x.Tag == team.Tag);
-        
-        if (existsByTag) {
-            throw ExceptionFactories.Tournament.Conflict(
-                TournamentErrorCodes.TeamWithThisTagAlreadyExists,
-                "Team with this tag already exists");
-        }
+        EnsureNotExistsTeamByOriginalId(team.OriginalTeamId);
+        EnsureNoTeamWithSameTag(team.Tag);
         
         var allNicknames = 
             teams
@@ -57,15 +42,37 @@ public partial class Tournament {
         teams.Add(team);
     }
 
-    public void InviteTeam(TournamentTeam team, Guid? organizerId) {
-        if (DeletedAt != null) return;
+    public void UnregisterTeam(Guid tournamentTeamId, Guid initiatorId) {
+        EnsureSupportRegistration();
+        EnsureState(TournamentState.RegistrationOpened);
+
+        var index = GetTeamIndex(tournamentTeamId);
+
+        var team = teams[index];
         
-        EnsureHasPermissionIfNotNull(organizerId, OrganizerPermissionType.InviteTeam);
+        if (team.RegistratorId == null) {
+            throw ExceptionFactories.TournamentTeam.Conflict(
+                "CanNotUnregisterInvitedTeam", 
+                "You can't unregister invited team");
+        }
         
-        if (State != TournamentState.Published) {
-            throw ExceptionFactories.Tournament.Conflict(
-                TournamentErrorCodes.IsNotPublished, "You can invite team only when Published state",
-                ("CurrentState", State));
+        if (team.RegistratorId.Value != initiatorId) {
+            throw ExceptionFactories.Team.Unauthorized(
+                "OnlyRegistratorCanUnregister", 
+                "Only registrator can unregister", 
+                new { team.RegistratorId });
+        }
+        
+        teams.RemoveAt(index);
+    }
+
+    public void InviteTeam(TournamentTeam team, Guid organizerId) {
+        EnsureHasPermission(organizerId, OrganizerPermissionType.TeamsManagement);
+        
+        if (Rules.IsSupportRegistration()) {
+            EnsureInclusiveBetweenStates(TournamentState.Published, TournamentState.RegistrationClosed);
+        } else {
+            EnsureState(TournamentState.Published);
         }
         
         const int requiredTeamSize = 4;
@@ -76,20 +83,8 @@ public partial class Tournament {
                 $"Inviting is access only for tournament where team size - {requiredTeamSize}",
                 ("RequiredTeamSize", requiredTeamSize));
         }
-            
-        if (Rules.RegistrationInfo != null) {
-            throw ExceptionFactories.Tournament.Conflict(
-                TournamentErrorCodes.IsNotSupportInvitingTeam,
-                "You cannot invite a team to a tournament with open registration");
-        }
         
-        var existsTeamOnTournament = teams.Any(x => x.OriginalTeamId == team.OriginalTeamId);
-
-        if (existsTeamOnTournament) {
-            throw ExceptionFactories.Tournament.Conflict(
-                "TeamAlreadyExists",
-                "Team already exists");
-        }
+        EnsureNotExistsTeamByOriginalId(team.OriginalTeamId);
         
         if (Rules.IsRegional() && team.Region != Rules.Region) {
             throw ExceptionFactories.Tournament.Conflict(
@@ -97,14 +92,79 @@ public partial class Tournament {
                 "You trying to invite team from another region on the regional tournament");
         }
         
-        var existsByTag = teams.Any(x => x.Tag == team.Tag);
+        EnsureNoTeamWithSameTag(team.Tag);
+        
+        teams.Add(team);
+    }
 
+    public void DeleteTeam(Guid tournamentTeamId, Guid organizerId) {
+        EnsureHasPermission(organizerId, OrganizerPermissionType.TeamsManagement);
+        
+        if (Rules.IsSupportRegistration()) {
+            EnsureInclusiveBetweenStates(TournamentState.Published, TournamentState.RegistrationClosed);
+        } else {
+            EnsureState(TournamentState.Published);
+        }
+        
+        teams.RemoveAll(x => x.Id == tournamentTeamId);
+    }
+
+    private void EnsureNotExistsTeamByOriginalId(Guid teamId) {
+        var existsTeamOnTournament = teams.Any(x => x.OriginalTeamId == teamId);
+
+        if (existsTeamOnTournament) {
+            throw ExceptionFactories.Tournament.Conflict(
+                "TeamAlreadyExists",
+                "Team already exists");
+        }
+    }
+
+    public void EditTeamMember(
+        Guid tournamentTeamId, Guid tournamentTeamMemberId,
+        string nickname, string? avatarUrl,
+        TournamentTeamMemberRole role, Guid initiatorId) {
+        EnsureInclusiveBetweenStates(TournamentState.Published, TournamentState.Completed);
+        
+        GetTeam(tournamentTeamId)
+            .EditMember(tournamentTeamMemberId, nickname, avatarUrl, role, initiatorId);
+    }
+
+    public void EditTeam(Guid tournamentTeamId, string tag, string title, string? logotypeUrl, Region region, Guid initiatorId) {
+        EnsureInclusiveBetweenStates(TournamentState.Published, TournamentState.Completed);
+        EnsureNoTeamWithSameTag(tag);
+        
+        GetTeam(tournamentTeamId)
+            .Edit(tag, title, logotypeUrl, region, initiatorId);
+    }
+
+    public void DisqualifyTeam(Guid tournamentTeamId, Guid organizerId) {
+        EnsureHasPermission(organizerId, OrganizerPermissionType.TeamsManagement);
+        EnsureInclusiveBetweenStates(
+            Rules.IsSupportRegistration() ? TournamentState.RegistrationOpened : TournamentState.Published, 
+            TournamentState.Completed);
+        
+        GetTeam(tournamentTeamId)
+            .Disqualify();
+    }
+
+    private void EnsureNoTeamWithSameTag(string tag) {
+        var existsByTag = teams.Any(x => x.Tag == tag);
+        
         if (existsByTag) {
             throw ExceptionFactories.Tournament.Conflict(
                 TournamentErrorCodes.TeamWithThisTagAlreadyExists,
-                "Team with this tag already exists. Please pass an overridden tag");
+                "Team with this tag already exists");
         }
-        
-        teams.Add(team);
+    }
+
+    private int GetTeamIndex(Guid tournamentTeamId) {
+        var index = teams.FindIndex(x => x.Id == tournamentTeamId);
+
+        return index != -1 ? index : throw ExceptionFactories.TournamentTeam.NotFound();
+    }
+
+    private TournamentTeam GetTeam(Guid tournamentTeamId) {
+        var index = GetTeamIndex(tournamentTeamId);
+        return teams[index];
     }
 }

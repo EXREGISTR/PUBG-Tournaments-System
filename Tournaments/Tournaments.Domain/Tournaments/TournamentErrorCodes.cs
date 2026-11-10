@@ -9,7 +9,6 @@ internal static class TournamentErrorCodes {
     public const string IsNotSupportRegistration = nameof(IsNotSupportRegistration);
     public const string IsNotOpenedRegistration = nameof(IsNotOpenedRegistration);
     public const string FrequentEditing = nameof(FrequentEditing);
-    public const string IsNotSupportInvitingTeam = nameof(IsNotSupportInvitingTeam);
     public const string TeamWithThisTagAlreadyExists = nameof(TeamWithThisTagAlreadyExists);
     public const string IsSupportRegistration = nameof(IsSupportRegistration);
 }

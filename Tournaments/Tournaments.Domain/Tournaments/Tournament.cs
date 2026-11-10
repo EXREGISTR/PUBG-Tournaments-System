@@ -1,13 +1,21 @@
 ﻿using DDD.SDK.Domain;
 using Domain.Common;
-using Domain.Tournaments.Enums;
-using Domain.Tournaments.Events;
 using Domain.Tournaments.OrganizerPermissions;
 using Domain.Tournaments.Stages;
 using Domain.Tournaments.Teams;
 using Domain.Tournaments.ValueObjects;
 
 namespace Domain.Tournaments;
+
+public enum TournamentState {
+    Draft = 0,
+    Published = 5,
+    RegistrationOpened = 10,
+    RegistrationClosed = 11,
+    InProcess = 15,
+    Completed = 20,
+    Cancelled = 25
+}
 
 public partial class Tournament : AggregateRoot {
     private readonly List<TournamentTeam> teams = [];
@@ -43,14 +51,10 @@ public partial class Tournament : AggregateRoot {
         CreatedAt = utcNow;
         
         organizerPermissions.AddRange(OrganizerPermission.ForTournamentCreator(creatorId));
-        
-        PushEvent(new CreatedDomainEvent(Id));
     }
     
     public void EditRules(TournamentRules rules, Guid organizerId, DateTime utcNow) {
-        if (DeletedAt != null) return;
-        
-        EnsureHasPermission(organizerId, OrganizerPermissionType.EditRules);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.EditTournament);
         EnsureDraftAndCanEdit(utcNow);
         
         Rules = rules;
@@ -58,14 +62,9 @@ public partial class Tournament : AggregateRoot {
     }
 
     public void EditContent(TournamentInformation information, Guid organizerId, DateTime utcNow) {
-        if (DeletedAt != null) return;
-        
-        EnsureHasPermission(organizerId, OrganizerPermissionType.EditContent);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.EditTournament);
+        EnsureInclusiveBetweenStates(TournamentState.Draft, TournamentState.InProcess);
         EnsureCanEdit(utcNow);
-        
-        if (State >= TournamentState.Published && Information.Description != information.Description) {
-            PushEvent(new DescriptionEditedDomainEvent(Id));
-        }
         
         Information = information;
         LastEditedAt = utcNow;

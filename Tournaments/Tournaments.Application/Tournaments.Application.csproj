@@ -8,16 +8,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Teams\" />
-      <Folder Include="Tournaments\UseCases\OrganizerPermissions\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\Tournaments.Domain\Tournaments.Domain.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="MediatR" Version="12.5.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Tournaments\UseCases\" />
     </ItemGroup>
 
 </Project>

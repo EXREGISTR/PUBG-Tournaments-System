@@ -1,7 +1,10 @@
 ﻿using Domain.Common;
-using Domain.Tournaments.Enums;
 
 namespace Domain.Tournaments.ValueObjects;
+
+public enum TournamentTier {
+    S, A, B, C, D
+}
 
 public record TournamentRules {
     public TournamentTeamSize TeamSize { get; private init; } = null!;
@@ -26,6 +29,8 @@ public record TournamentRules {
         TeamSize = teamSize;
         Region = region;
         RegistrationInfo = registrationInformation;
+        StartDate = startDate;
+        EndDate = startDate.AddDays(daysDuration);
     }
 
     private static void EnsureValid(DateTime startDate, Region region, TournamentTier? tier, DateTime utcNow) {

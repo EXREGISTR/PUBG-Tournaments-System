@@ -1,6 +1,8 @@
 ﻿namespace Application.Tournaments;
 
 public interface ITournamentsScheduler {
+    public Task ScheduleQualifyingTeamsToNextStages(Guid tournamentId, Guid stageId, CancellationToken cancellationToken = default);
+    
     public Task ScheduleOpeningRegistrationJob(Guid tournamentId, DateTimeOffset startAt, CancellationToken cancellationToken = default);
     public Task DeleteOpenRegistrationJob(Guid tournamentId, CancellationToken cancellationToken = default);
     

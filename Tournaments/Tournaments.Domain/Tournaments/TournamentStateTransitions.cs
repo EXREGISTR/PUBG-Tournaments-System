@@ -1,6 +1,4 @@
 ﻿using Domain.Common;
-using Domain.Tournaments.Enums;
-using Domain.Tournaments.Events;
 using Domain.Tournaments.OrganizerPermissions;
 
 namespace Domain.Tournaments;
@@ -19,9 +17,7 @@ namespace Domain.Tournaments;
 // Draft -> Deleted -> Draft
 public partial class Tournament {
     public void Publish(Guid organizerId, DateTime utcNow) {
-        if (DeletedAt != null) return;
-        
-        EnsureHasPermission(organizerId, OrganizerPermissionType.Publish);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.PublishTournament);
         
         if (State == TournamentState.Published) return;
 
@@ -33,12 +29,9 @@ public partial class Tournament {
         
         State = TournamentState.Published;
         PublishedAt = utcNow;
-        PushEvent(new PublishedDomainEvent(Id));
     }
     
     public void OpenRegistration() {
-        if (DeletedAt != null) return;
-        
         EnsureSupportRegistration();
         
         if (State is TournamentState.RegistrationClosed or TournamentState.Cancelled) return;
@@ -50,13 +43,10 @@ public partial class Tournament {
         }
         
         State = TournamentState.RegistrationOpened;
-        PushEvent(new RegistrationStartedDomainEvent(Id));
     }
 
     /// <returns>True if teams count greater than or equals min participants count (property from <see cref="ValueObjects.RegistrationInformation"/>) </returns>
     public bool CloseRegistration() {
-        if (DeletedAt != null) return false;
-        
         EnsureSupportRegistration();
         
         if (State is TournamentState.RegistrationClosed or TournamentState.Cancelled) return false;
@@ -68,20 +58,18 @@ public partial class Tournament {
         }
 
         if (teams.Count < Rules.RegistrationInfo!.MinTeamsCount) {
-            const string reason = "Tournament was canceled because not enough teams to start";
-            CancelInternal(reason);
+            State = TournamentState.Cancelled;
             return false;
         }
         
         State = TournamentState.RegistrationClosed;
-        PushEvent(new RegistrationClosedDomainEvent(Id));
         return true;
     }
     
     public void Delete(Guid? organizerId, DateTime utcNow) {
         if (DeletedAt != null) return;
         
-        EnsureHasPermissionIfNotNull(organizerId, OrganizerPermissionType.Delete);
+        EnsureHasPermissionIfNotNull(organizerId, OrganizerPermissionType.DeleteTournament);
         
         if (State >= TournamentState.InProcess) {
             throw ExceptionFactories.Tournament.Conflict(
@@ -91,20 +79,16 @@ public partial class Tournament {
 
         State = TournamentState.Draft;
         DeletedAt = utcNow;
-        PushEvent(new DeletedDomainEvent(Id));
     }
 
     public void Recover(Guid organizerId) {
-        if (DeletedAt == null) return;
-        
-        EnsureHasPermission(organizerId, OrganizerPermissionType.Recover);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.DeleteTournament);
         
         DeletedAt = null;
-        PushEvent(new RecoveredDomainEvent(Id));
     }
     
     public void Start() {
-        if (DeletedAt != null || State == TournamentState.InProcess) return;
+        if (State == TournamentState.InProcess) return;
 
         if (State == TournamentState.Draft) {
             throw ExceptionFactories.Tournament.Conflict(
@@ -125,7 +109,6 @@ public partial class Tournament {
         }
         
         State = TournamentState.InProcess;
-        PushEvent(new StartedDomainEvent(Id));
     }
 
     public void Complete() {
@@ -138,11 +121,10 @@ public partial class Tournament {
         }
 
         State = TournamentState.Completed;
-        PushEvent(new CompletedDomainEvent(Id));
     }
     
     public void Cancel(Guid organizerId, string reason, DateTime utcNow) {       
-        EnsureHasPermission(organizerId, OrganizerPermissionType.Publish);
+        EnsureHasPermission(organizerId, OrganizerPermissionType.PublishTournament);
 
         const int minHoursFromStartDateToNowForCancellation = 6;
         
@@ -161,11 +143,6 @@ public partial class Tournament {
                 "You can't cancel tournament that has started");
         }
         
-        CancelInternal(reason);
-    }
-    
-    private void CancelInternal(string reason) {
         State = TournamentState.Cancelled;
-        PushEvent(new CancelledDomainEvent(Id, reason));
     }
 }

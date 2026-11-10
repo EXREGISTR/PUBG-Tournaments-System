@@ -1,4 +1,4 @@
-﻿using Domain.Teams.TeamMembers;
+﻿using Domain.Teams.Members;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

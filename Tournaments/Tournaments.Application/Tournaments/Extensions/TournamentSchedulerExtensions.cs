@@ -1,5 +1,4 @@
 ﻿using Domain.Tournaments;
-using Domain.Tournaments.Enums;
 
 namespace Application.Tournaments.Extensions;
 

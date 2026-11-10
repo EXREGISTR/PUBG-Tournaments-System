@@ -1,4 +1,4 @@
-﻿using Application.Tournaments.UseCases;
+﻿using Application.Tournaments.UseCases.Commands;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Quartz;
@@ -7,7 +7,7 @@ namespace Infrastructure.BackgroundJobs.Tournaments;
 
 internal class StartTournamentJob(IServiceScopeFactory scopeFactory) : ITournamentJob {
     public async Task Execute(IJobExecutionContext context) {
-        var tournamentId = context.JobDetail.JobDataMap.GetGuidValue(JobConstants.TournamentIdKey);
+        var tournamentId = context.JobDetail.JobDataMap.GetGuidValue(JobConstants.TournamentId);
         
         using var scope = scopeFactory.CreateScope();
         

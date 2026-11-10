@@ -20,9 +20,12 @@ internal class TeamConfiguration : IEntityTypeConfiguration<Team> {
             .HasConversion<string>();
 
         builder.Property(x => x.CreatorId);
-        builder.Property(x => x.IsGlobalPartner);
 
         builder.HasMany(x => x.Members)
+            .WithOne()
+            .HasForeignKey(y => y.TeamId);
+        
+        builder.HasMany(x => x.Invitations)
             .WithOne()
             .HasForeignKey(y => y.TeamId);
     }

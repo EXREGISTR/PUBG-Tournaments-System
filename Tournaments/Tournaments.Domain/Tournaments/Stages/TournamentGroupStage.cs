@@ -1,6 +1,5 @@
 ﻿using Domain.Common;
 using Domain.Common.Extensions;
-using Domain.Tournaments.Stages.Matches;
 using Domain.Tournaments.Stages.Teams;
 using Domain.Tournaments.Stages.ValueObjects;
 
@@ -12,7 +11,7 @@ public class TournamentGroupStage : TournamentStageBase {
     
     private TournamentGroupStage() { }
 
-    internal TournamentGroupStage(StageInformation info, int groupsCount, int groupSize) : base(info) {
+    public TournamentGroupStage(StageInformation information, int groupsCount, int groupSize) : base(information) {
         EnsureValidGroupsInfo(groupsCount, groupSize);
         
         GroupsCount = groupsCount;
@@ -29,15 +28,17 @@ public class TournamentGroupStage : TournamentStageBase {
 
     protected override void EnsureValidMatchParticipatedGroups(IReadOnlyCollection<int>? participatedGroups) {
         if (participatedGroups == null) {
-            throw ExceptionFactories.Match.Validation(nameof(Match.ParticipatedGroups), "No participated groups");
+            throw ExceptionFactories.Match.Validation("Results.ParticipatedGroups", "No participated groups");
         }
         
         if (participatedGroups.Any(groupNumber => groupNumber < 0 || groupNumber >= GroupsCount)) {
-            throw ExceptionFactories.Match.Validation(nameof(Match.ParticipatedGroups), "Unknown group number");
+            throw ExceptionFactories.Match.Validation("Results.ParticipatedGroups", "Unknown group number");
         }
     }
 
     internal void MoveTeamToOtherGroup(Guid tournamentTeamId, int otherGroupNumber) {
+        EnsureIsNotFinished();
+        
         var team = Teams.FirstOrDefault(x => x.TournamentTeamId == tournamentTeamId);
         if (team == null) throw ExceptionFactories.TeamStage.NotFound();
         
@@ -88,7 +89,7 @@ public class TournamentGroupStage : TournamentStageBase {
                 AddTeamInternal(new TournamentStageTeam(teamId, groupNumber));
             }
         }
-    } 
+    }
 
     internal void DistributeTeamsRandomly(IReadOnlyCollection<Guid> tournamentTeamIds) {
         if (tournamentTeamIds.Count > GroupsCount * GroupSize) {

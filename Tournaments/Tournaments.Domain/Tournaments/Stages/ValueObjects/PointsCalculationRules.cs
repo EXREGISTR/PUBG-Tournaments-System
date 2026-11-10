@@ -1,42 +1,26 @@
 ﻿using Domain.Common;
-using Domain.Tournaments.Stages.Matches;
 
 namespace Domain.Tournaments.Stages.ValueObjects;
 
 public record PointsCalculationRules {
-    public record PlacePointCalculationRule(int Place, string Rule);
     public record ParameterRule(char Action, int Value);
     
-    public ParameterRule[] PlaceRulesSortedByPlace { get; private init; } = [];
+    public ParameterRule[] PlacementRulesSortedByPlace { get; private init; } = [];
 
     public ParameterRule KillsRule { get; private init; } = null!;
-    public ParameterRule KnockoutsRule { get; private init; } = null!;
-    public ParameterRule DeathsRule { get; private init; } = null!;
     
     private PointsCalculationRules() { }
-    
-    internal int Calculate(int place, IReadOnlyCollection<MatchResults.PlayerStats> playersStats) {
-        int points = 0;
 
-        if (place <= PlaceRulesSortedByPlace.Length) {
-            points += Calculate(PlaceRulesSortedByPlace[place - 1], place);
-        }
+    public int CalculatePlacementPoints(int place) => 
+        place <= PlacementRulesSortedByPlace.Length 
+            ? Calculate(PlacementRulesSortedByPlace[place - 1], place) 
+            : 0;
 
-        if (KillsRule.Value != 0) {
-            points += Calculate(KillsRule, playersStats.Sum(x => x.Kills));
-        }
+    public int CalculateKillsPoints(int kills) =>
+        KillsRule.Value != 0
+            ? Calculate(KillsRule, kills)
+            : 0;
 
-        if (KnockoutsRule.Value != 0) {
-            points += Calculate(KnockoutsRule, playersStats.Sum(x => x.Knockouts));
-        }
-
-        if (DeathsRule.Value != 0) {
-            points += Calculate(DeathsRule, playersStats.Sum(x => x.Deaths));
-        }
-        
-        return points;
-    }
-    
     private static int Calculate(ParameterRule rule, int parameter) =>
         rule.Action switch {
             '+' => parameter + rule.Value,
@@ -45,12 +29,10 @@ public record PointsCalculationRules {
         };
 
     public static PointsCalculationRules Create(
-        string[] placeRulesSortedByPlace, string? killsRule, string? knockoutsRule, string? deathsRule) =>
+        string[] placementRulesSortedByPlace, string? killsRule) =>
         new PointsCalculationRules {
             KillsRule = Parse(killsRule, nameof(KillsRule)),
-            KnockoutsRule = Parse(knockoutsRule, nameof(KnockoutsRule)),
-            DeathsRule = Parse(deathsRule, nameof(DeathsRule)),
-            PlaceRulesSortedByPlace = ParsePlaceRules(placeRulesSortedByPlace),
+            PlacementRulesSortedByPlace = ParsePlaceRules(placementRulesSortedByPlace),
         };
 
     private static ParameterRule Parse(string? rule, string fieldName) {
@@ -60,7 +42,7 @@ public record PointsCalculationRules {
         
         char ruleAction = rule[0];
         if (ruleAction != '+' && ruleAction != '*') {
-            errors.Add($"Invalid action in {fieldName}: {ruleAction}. Valid actions: '+'/'-'/'*'");
+            errors.Add($"Invalid action in {fieldName}: {ruleAction}. Valid actions: '+'/'*'");
         }
         
         string ruleValueString = rule[1..];
@@ -104,11 +86,11 @@ public record PointsCalculationRules {
 
         return errors.Count == 0 
             ? mappedRules 
-            : throw ExceptionFactories.PointsCalculationRules.Validation(nameof(PlaceRulesSortedByPlace), errors);
+            : throw ExceptionFactories.PointsCalculationRules.Validation(nameof(PlacementRulesSortedByPlace), errors);
     }
     
     public static readonly PointsCalculationRules Default = new PointsCalculationRules {
-        PlaceRulesSortedByPlace = [
+        PlacementRulesSortedByPlace = [
             new ParameterRule('+', 10),
             new ParameterRule('+', 6),
             new ParameterRule('+', 5),
@@ -118,8 +100,6 @@ public record PointsCalculationRules {
             new ParameterRule('+', 1),
             new ParameterRule('+', 1)
         ],
-        KillsRule = new ParameterRule('+', 1),
-        KnockoutsRule = new ParameterRule('+', 0),
-        DeathsRule = new ParameterRule('+', 0)
+        KillsRule = new ParameterRule('+', 1)
     };
 }

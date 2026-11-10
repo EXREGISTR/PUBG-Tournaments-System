@@ -7,30 +7,37 @@ using Domain.Tournaments.Stages.ValueObjects;
 
 namespace Domain.Tournaments.Stages;
 
+public enum TournamentStageState {
+    Default, Finished, QualifyingExecuted
+}
+
 public abstract class TournamentStageBase {
     private readonly List<Match> matches = [];
     private readonly List<QualificationRange> qualificationRanges = [];
     private readonly List<TournamentStageTeam> teams = [];
     
     public Guid Id { get; private init; }
-    public StageInformation Info { get; internal set; } = null!;
+    public StageInformation Information { get; internal set; } = null!;
     public PointsCalculationRules PointsCalculationRules { get; internal set; } = null!;
-    public Guid TournamentId { get; private init; }
     public int Order { get; internal set; }
+    public Guid TournamentId { get; private init; }
     
     public IReadOnlyCollection<Match> Matches => matches;
     public IReadOnlyCollection<QualificationRange> QualificationRanges => qualificationRanges;
     public IReadOnlyCollection<TournamentStageTeam> Teams => teams;
     
+    public TournamentStageState State { get; private set; }
+    
     protected TournamentStageBase() { }
     
-    protected TournamentStageBase(StageInformation info) {
+    protected TournamentStageBase(StageInformation information) {
         Id = Guid.CreateVersion7();
-        Info = info;
+        Information = information;
+        State = TournamentStageState.Default;
         Order = -1;
     }
     
-    #region QualificationRanges
+    #region Qualification Management
     /// <summary>
     /// Adds qualification range only in free space
     /// </summary>
@@ -94,7 +101,53 @@ public abstract class TournamentStageBase {
     
     internal void DeleteQualificationRange(Guid qualificationRangeId) => 
         qualificationRanges.RemoveAll(range => range.Id == qualificationRangeId);
+    
+    internal void QualifyToNextStages() {
+        if (State == TournamentStageState.QualifyingExecuted) return;
+        
+        if (State != TournamentStageState.Finished) {
+            throw ExceptionFactories.TournamentStage.Conflict(
+                "IsNotFinished", 
+                "Can not qualify teams to next stages because stage is not finished");
+        }
+        
+        if (qualificationRanges.Count == 0) return;
+        
+        var teamsSortedByPoints = matches
+            .SelectMany(x => x.Results.TeamsStats)
+            .GroupBy(x => x.TournamentTeamId)
+            .Join(teams, 
+                x => x.Key, 
+                y => y.TournamentTeamId, (group, team) => {
+                var totalPlacementPoints = 0;
+                var totalKills = 0;
+                
+                foreach (var teamStats in group) {
+                    totalPlacementPoints += PointsCalculationRules.CalculatePlacementPoints(teamStats.Place);
+                    totalKills += teamStats.PlayersStats.Sum(player => player.Kills);
+                }
 
+                int totalPoints =
+                    team.AdditivePoints +
+                    PointsCalculationRules.CalculateKillsPoints(totalKills) + 
+                    totalPlacementPoints;
+
+                return (team.TournamentTeamId, TotalPoints: totalPoints);
+            })
+            .OrderByDescending(x => x.TotalPoints)
+            .Select(x => x.TournamentTeamId)
+            .ToArray();
+        
+        foreach (var range in qualificationRanges) {
+            range.NextStage.AddTeams(
+                teamsSortedByPoints
+                    .Skip(range.FromPlace - 1)
+                    .Take(range.ToPlace - range.FromPlace + 1));
+        }
+
+        State = TournamentStageState.QualifyingExecuted;
+    }
+    
     private void EnsureNoIntersectionsWithQualificationRanges(int fromPlace, int toPlace) {
         if (qualificationRanges.Any(range => fromPlace <= range.ToPlace && toPlace >= range.FromPlace)) {
             throw ExceptionFactories.StageQualificationRange.Conflict(
@@ -122,8 +175,10 @@ public abstract class TournamentStageBase {
     }
     #endregion
 
-    #region Teams
+    #region Teams Management
     internal void AddTeam(TournamentStageTeam team) {
+        EnsureIsNotFinished();
+        
         if (Teams.Count == GetMaxTeamsCount()) {
             throw ExceptionFactories.TournamentStage.Conflict("NoMorePlaces", "No more places");
         }
@@ -132,28 +187,26 @@ public abstract class TournamentStageBase {
         AddTeamInternal(team);
     }
     
-    protected abstract void EnsureValidTeamGroupNumber(int? groupNumber);
-
-    internal void AddQualifiedTeams(IEnumerable<Guid> teamIds) {
-        if (matches.Count != 0) {
-            throw ExceptionFactories.TournamentStage.Conflict(
-                "MatchesAlreadyStarted", 
-                "Can't add qualified teams, because already loaded matches");
-        }
-        
-        teams.AddRange(teamIds.Select(teamId => new TournamentStageTeam(teamId, null)));
+    internal void DeleteTeam(Guid tournamentTeamId) {
+        EnsureIsNotFinished();
+        teams.RemoveAll(x => x.TournamentTeamId == tournamentTeamId);
     }
     
+    protected abstract void EnsureValidTeamGroupNumber(int? groupNumber);
+
+    private void AddTeams(IEnumerable<Guid> teamIds) => 
+        teams.AddRange(teamIds.Select(teamId => new TournamentStageTeam(teamId, null)));
+
     protected void AddTeamInternal(TournamentStageTeam team) => teams.Add(team);
+    protected void ClearTeams() => teams.Clear();
     
-    internal void ClearTeams() => teams.Clear();
-    internal void DeleteTeam(Guid tournamentTeamId) => teams.RemoveAll(x => x.TournamentTeamId == tournamentTeamId);
     #endregion
     
-    #region Matches Results
-    internal void AddMatchResults(Match match, bool isLastMatch) {
-        EnsureValidMatchParticipatedGroups(match.ParticipatedGroups);
-        
+    #region Matches Management
+    internal void LoadMatch(Match match, bool isLastMatch) {
+        EnsureIsNotFinished();
+        EnsureValidMatchParticipatedGroups(match.Results.ParticipatedGroups);
+
         var results = match.Results;
         
         if (results.TeamsStats.Length > teams.Count) {
@@ -202,27 +255,10 @@ public abstract class TournamentStageBase {
         if (errors.Count > 0) throw ExceptionFactories.Match.Validation(errors);
         
         matches.Add(match);
-        
-        for (var index = 0; index < results.TeamsStats.Length; index++) {
-            var teamStats = results.TeamsStats[index];
-            TournamentStageTeam team = teamsById[teamStats.TournamentTeamId];
-            
-            team.TotalPoints += PointsCalculationRules.Calculate(index + 1, teamStats.PlayersStats);
-        }
 
-        if (!isLastMatch || qualificationRanges.Count == 0) return;
+        if (!isLastMatch) return;
         
-        Guid[] teamsSortedByPoints = teams
-            .OrderBy(x => x.TotalPoints)
-            .Select(x => x.TournamentTeamId)
-            .ToArray();
-        
-        foreach (var range in qualificationRanges) {
-            range.NextStage.AddQualifiedTeams(
-                teamsSortedByPoints
-                    .Skip(range.FromPlace - 1)
-                    .Take(range.ToPlace - range.FromPlace + 1));
-        }
+        State = TournamentStageState.Finished;
     }
     
     protected abstract void EnsureValidMatchParticipatedGroups(IReadOnlyCollection<int>? participatedGroups);
@@ -242,6 +278,12 @@ public abstract class TournamentStageBase {
             throw ExceptionFactories.StageQualificationRange.Conflict(
                 "CanNotBeChanged",
                 "New max teams count can not be set. Reduce the affected ranges");
+        }
+    }
+
+    protected void EnsureIsNotFinished() {
+        if (State == TournamentStageState.Finished) {
+            throw ExceptionFactories.TournamentStage.Conflict("IsFinished", "Stage is finished");
         }
     }
 }

@@ -3,6 +3,40 @@
 namespace Domain.Tournaments.Stages.Matches;
 
 public record MatchResults {
+    public TimeSpan Duration { get; private init; }
+    public int[]? ParticipatedGroups { get; private set; }
+    public TeamStats[] TeamsStats { get; private init; } = [];
+    
+    private MatchResults() { }
+    
+    public MatchResults(
+        TimeSpan duration,
+        IEnumerable<int>? participatedGroups,
+        TeamStats[] teamsStats) {
+        MatchResultsValidator.EnsureValid(duration, teamsStats);
+        
+        Duration = duration;
+        ParticipatedGroups = participatedGroups?.Order().ToArray();
+        TeamsStats = teamsStats;
+    }
+    
+    public record TeamStats {
+        public Guid TournamentTeamId { get; init; }
+        public int Place { get; init; }
+        public PlayerStats[] PlayersStats { get; init; } = [];
+        
+        private TeamStats() { }
+        
+        public TeamStats(
+            Guid tournamentTeamId,
+            int place,
+            PlayerStats[] playersStats) {
+            TournamentTeamId = tournamentTeamId;
+            Place = place;
+            PlayersStats = playersStats;
+        }
+    }
+    
     public record PlayerStats {
         public Guid TournamentTeamMemberId { get; init; }
         public int Kills { get; init; }
@@ -29,32 +63,6 @@ public record MatchResults {
         }
     }
 
-    public record TeamStats {
-        public Guid TournamentTeamId { get; init; }
-        public PlayerStats[] PlayersStats { get; init; } = [];
-        
-        private TeamStats() { }
-        
-        public TeamStats(Guid tournamentTeamId, PlayerStats[] playersStats) {
-            TournamentTeamId = tournamentTeamId;
-            PlayersStats = playersStats;
-        }
-    }
-
-    public string? ParticipatingGroups { get; private init; }
-    public TimeSpan Duration { get; private init; }
-    public TeamStats[] TeamsStats { get; private init; } = [];
-    
-    private MatchResults() { }
-    
-    public MatchResults(
-        TimeSpan duration,
-        TeamStats[] teamsStats) {
-        MatchResultsValidator.EnsureValid(duration, teamsStats);
-        
-        Duration = duration;
-        TeamsStats = teamsStats;
-    }
 }
 
 internal static class MatchResultsValidator {

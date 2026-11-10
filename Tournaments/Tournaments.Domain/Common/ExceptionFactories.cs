@@ -12,6 +12,7 @@ public static class ExceptionFactories {
     public static readonly ApplicationExceptionFactory Team = new(nameof(Team));
     public static readonly ApplicationExceptionFactory TournamentTeam = new(nameof(TournamentTeam));
     public static readonly ApplicationExceptionFactory TeamMember = new(nameof(TeamMember));
+    public static readonly ApplicationExceptionFactory TournamentTeamMember = new(nameof(TournamentTeamMember));
     public static readonly ApplicationExceptionFactory PlayerStatsPerMatch = new(nameof(PlayerStatsPerMatch));
     public static readonly ApplicationExceptionFactory TeamStage = new(nameof(TeamStage));
     public static readonly ApplicationExceptionFactory TournamentStage = new(nameof(TournamentStage));

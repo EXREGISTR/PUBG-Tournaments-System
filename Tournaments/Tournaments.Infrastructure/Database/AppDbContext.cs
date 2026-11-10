@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace Infrastructure.Database;
 
-public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options) {
+internal sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options) {
     public DbSet<Tournament> Tournaments => Set<Tournament>();
     public DbSet<Map> Maps => Set<Map>();
     public DbSet<Team> Teams => Set<Team>();

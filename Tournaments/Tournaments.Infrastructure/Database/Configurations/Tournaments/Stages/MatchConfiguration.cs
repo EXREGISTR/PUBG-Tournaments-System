@@ -11,10 +11,9 @@ internal class MatchConfiguration : IEntityTypeConfiguration<Match> {
         builder.HasKey(x => x.Id);
         
         builder.Property(x => x.Id)
-            .ValueGeneratedOnAdd();
+            .ValueGeneratedNever();
 
         builder.Property(x => x.MapId);
-        builder.Property(x => x.ParticipatedGroups);
         builder.ComplexProperty(x => x.Results, resultsBuilder => resultsBuilder.ToJson());
         
         builder.HasOne(x => x.Map)

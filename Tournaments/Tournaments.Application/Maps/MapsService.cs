@@ -10,28 +10,31 @@ namespace Application.Maps;
 public class MapsService(
     IMapsRepository repository, 
     IUnitOfWork unitOfWork) {
-    public async Task Create(CreateMapRequest request, CancellationToken token = default) {
-        var exists = await repository.Exists(request.Title, token);
+    public async Task Create(MapEditModel editModel, CancellationToken token = default) {
+        var exists = await repository.Exists(editModel.Title, token);
 
         if (exists) {
             throw ExceptionFactories.Map.Conflict("MapAlreadyExists", "Map with same title already exists");
         }
         
-        var map = new Map(request.Title, request.LogotypeUrl);
+        var map = new Map(editModel.Title, editModel.LogotypeUrl);
         
         repository.Insert(map);
 
         await unitOfWork.SaveChanges(token);
     }
 
-    public async Task Edit(EditMapRequest request, CancellationToken token = default) {
-        var map = await repository.GetById(request.MapId, token);
+    public Task<IReadOnlyCollection<MapDto>> GetActiveMaps(CancellationToken token = default) =>
+        repository.GetActiveMaps(token);
+    
+    public async Task Edit(int mapId, MapEditModel editModel, CancellationToken token = default) {
+        var map = await repository.GetById(mapId, token);
 
         if (map == null) {
             throw ExceptionFactories.Map.NotFound();
         }
         
-        map.Edit(request.Title, request.LogotypeUrl);
+        map.Edit(editModel.Title, editModel.LogotypeUrl);
         
         await unitOfWork.SaveChanges(token);
     }
