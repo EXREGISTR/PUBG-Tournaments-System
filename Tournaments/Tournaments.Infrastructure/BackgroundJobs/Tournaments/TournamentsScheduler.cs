@@ -3,7 +3,7 @@ using Quartz;
 
 namespace Infrastructure.BackgroundJobs.Tournaments;
 
-internal class TournamentsScheduler(IScheduler scheduler) : ITournamentsScheduler {
+internal class TournamentsScheduler(ISchedulerFactory schedulerFactory) : ITournamentsScheduler {
     private static JobKey CreateOpenRegistrationJobKey(Guid tournamentId) =>
         JobKey.Create($"open-registration-job-{tournamentId}");
     
@@ -16,7 +16,7 @@ internal class TournamentsScheduler(IScheduler scheduler) : ITournamentsSchedule
     private static JobKey CreateCompleteTournamentJobKey(Guid tournamentId) =>
         JobKey.Create($"complete-tournament-job-{tournamentId}");
     
-    public Task ScheduleQualifyingTeamsToNextStages(Guid tournamentId, Guid stageId,
+    public async Task ScheduleQualifyingTeamsToNextStages(Guid tournamentId, Guid stageId,
         CancellationToken cancellationToken = default) {
         var job = JobBuilder
             .Create<QualifyTeamsToNextStagesJob>()
@@ -29,8 +29,10 @@ internal class TournamentsScheduler(IScheduler scheduler) : ITournamentsSchedule
             .ForJob(job.Key)
             .StartNow()
             .Build();
+
+        var scheduler = await schedulerFactory.GetScheduler(cancellationToken);
         
-        return scheduler.ScheduleJob(job, trigger, cancellationToken);
+        await scheduler.ScheduleJob(job, trigger, cancellationToken);
     }
 
     public Task ScheduleOpeningRegistrationJob(
@@ -39,7 +41,7 @@ internal class TournamentsScheduler(IScheduler scheduler) : ITournamentsSchedule
     
     public Task DeleteOpenRegistrationJob(
         Guid tournamentId, CancellationToken cancellationToken = default) =>
-        scheduler.DeleteJob(CreateOpenRegistrationJobKey(tournamentId), cancellationToken);
+        DeleteJob(CreateOpenRegistrationJobKey(tournamentId), cancellationToken);
 
     
     public Task ScheduleClosingRegistrationJob(
@@ -48,7 +50,7 @@ internal class TournamentsScheduler(IScheduler scheduler) : ITournamentsSchedule
     
     public Task DeleteClosingRegistrationJob(
         Guid tournamentId, CancellationToken cancellationToken = default) =>
-        scheduler.DeleteJob(CreateCloseRegistrationJobKey(tournamentId), cancellationToken);
+        DeleteJob(CreateCloseRegistrationJobKey(tournamentId), cancellationToken);
 
     
     public Task ScheduleStartingTournamentJob(
@@ -57,7 +59,7 @@ internal class TournamentsScheduler(IScheduler scheduler) : ITournamentsSchedule
     
     public Task DeleteStartingTournamentJob(
         Guid tournamentId, CancellationToken cancellationToken = default) =>
-        scheduler.DeleteJob(CreateStartTournamentJobKey(tournamentId), cancellationToken);
+        DeleteJob(CreateStartTournamentJobKey(tournamentId), cancellationToken);
 
     
     public Task ScheduleCompletingTournamentJob(
@@ -66,7 +68,13 @@ internal class TournamentsScheduler(IScheduler scheduler) : ITournamentsSchedule
         ScheduleJob<CompleteTournamentJob>(CreateCompleteTournamentJobKey, tournamentId, startAt, cancellationToken);
 
 
-    private Task ScheduleJob<T>(
+    private async Task DeleteJob(JobKey jobKey, CancellationToken cancellationToken = default) {
+        var scheduler = await schedulerFactory.GetScheduler(cancellationToken);
+        
+        await scheduler.DeleteJob(jobKey, cancellationToken);
+    }
+    
+    private async Task ScheduleJob<T>(
         Func<Guid, JobKey> jobKeyProvider, 
         Guid tournamentId, 
         DateTimeOffset startAt, 
@@ -87,6 +95,8 @@ internal class TournamentsScheduler(IScheduler scheduler) : ITournamentsSchedule
             .StartAt(startAt)
             .Build();
         
-        return scheduler.ScheduleJob(job, trigger, cancellationToken);
+        var scheduler = await schedulerFactory.GetScheduler(cancellationToken);
+        
+        await scheduler.ScheduleJob(job, trigger, cancellationToken);
     }
 }

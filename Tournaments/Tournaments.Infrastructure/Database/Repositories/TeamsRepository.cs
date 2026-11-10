@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Database.Repositories;
 
-internal class TeamsRepository(AppDbContext dbContext) : ITeamsRepository {
+internal sealed class TeamsRepository(AppDbContext dbContext) : ITeamsRepository {
     public void Insert(Team team) => 
         dbContext.Teams.Add(team);
     

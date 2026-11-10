@@ -24,9 +24,14 @@ public class MapsService(
         await unitOfWork.SaveChanges(token);
     }
 
-    public Task<IReadOnlyCollection<MapDto>> GetActiveMaps(CancellationToken token = default) =>
-        repository.GetActiveMaps(token);
-    
+    public async Task<IReadOnlyCollection<MapView>> GetActiveMaps(CancellationToken token = default) {
+        var maps = await repository.GetActiveMaps(token);
+
+        return maps
+            .Select(map => new MapView(map.Id, map.Title, map.LogotypeUrl))
+            .ToArray();
+    }
+
     public async Task Edit(int mapId, MapEditModel editModel, CancellationToken token = default) {
         var map = await repository.GetById(mapId, token);
 

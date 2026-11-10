@@ -12,7 +12,7 @@ namespace Application.Teams;
 
 public class TeamsService(
     IUserContext userContext,
-    IUsersService usersService,
+    IUsersClient usersClient,
     ITournamentsQueryRepository tournamentsRepository,
     ITeamsRepository teamsRepository, 
     IUnitOfWork unitOfWork) {
@@ -75,7 +75,7 @@ public class TeamsService(
     }
 
     public async Task InvitePeople(Guid teamId, Guid userId, TeamMemberRole role, CancellationToken token = default) {
-        var existsTargetUser = await usersService.Exists(userId, token);
+        var existsTargetUser = await usersClient.Exists(userId, token);
 
         if (!existsTargetUser) {
             throw ExceptionFactories.Team.Conflict("UserNotFound", "You can't invite unknown user");
