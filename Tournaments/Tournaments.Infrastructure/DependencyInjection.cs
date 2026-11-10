@@ -27,7 +27,31 @@ public static class DependencyInjection {
             services
                 .AddBackgroundJobs(connectionString)
                 .AddDatabase(connectionString)
-                .AddUsersClient(configuration, environment);
+                .AddUsersClient(configuration);
+            
+            return services;
+        }
+
+        private IServiceCollection AddUsersClient(IConfiguration configuration) {
+            var usersClientConfig = configuration.GetSection("UsersClient");
+
+            if (!bool.TryParse(usersClientConfig["UseMock"], out var useMock)) {
+                throw new Exception("UsersClient.UseMock is invalid");
+            }
+
+            var baseUrl = 
+                usersClientConfig["BaseUrl"] 
+                ?? throw new Exception("UsersClient.BaseUrl is invalid");
+            
+            if (useMock) {
+                services.AddScoped<IUsersClient, MockUsersClient>();
+            } else {
+                services.AddHttpClient<UsersClient>(options => {
+                    options.BaseAddress = new Uri(baseUrl);
+                });
+                
+                services.AddScoped<IUsersClient, UsersClient>();
+            }
             
             return services;
         }
@@ -43,24 +67,6 @@ public static class DependencyInjection {
             services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
             
             services.AddSingleton<ITournamentsScheduler, TournamentsScheduler>();
-            
-            return services;
-        }
-
-        private IServiceCollection AddUsersClient(IConfiguration configuration, string environment) {
-            if (environment == "Development") {
-                services.AddScoped<IUsersClient, MockUsersClient>();
-            } else {
-                var usersClientConfig = configuration.GetSection("UsersClient");
-                
-                services.AddHttpClient<UsersClient>(options => {
-                    options.BaseAddress = new Uri(
-                        usersClientConfig["BaseUrl"] 
-                        ?? throw new NullReferenceException("UsersClient section has errors"));
-                });
-                
-                services.AddScoped<IUsersClient, UsersClient>();
-            }
             
             return services;
         }
