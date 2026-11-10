@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Json;
 using Application.Teams;
 
-namespace Infrastructure.Services;
+namespace Infrastructure.Clients;
 
 internal sealed class UsersClient(HttpClient httpClient) : IUsersClient {
     public async Task<bool> Exists(Guid userId, CancellationToken token = default) {
