@@ -5,7 +5,6 @@ public enum OrganizerPermissionType {
     PublishTournament,
     CancelTournament,
     DeleteTournament,
-    OrganizersManagement,
     PermissionsManagement,
     TeamsManagement,
     MatchesManagement

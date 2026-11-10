@@ -17,12 +17,15 @@ public static class Delete {
         : IRequestHandler<Request> {
         public async Task Handle(Request request, CancellationToken cancellationToken) {
             var tournamentId = request.TournamentId;
-            var userId = userContext.GetUserId();
+            Guid? userId = userContext.IsAdmin() ? null : userContext.GetUserId();
+
+            var query = repository.Query();
+
+            if (userId != null) {
+                query.IncludeOrganizerPermission(userId.Value, OrganizerPermissionType.DeleteTournament);
+            }
             
-            var tournament = await repository
-                .Query()
-                .IncludeOrganizerPermission(userId, OrganizerPermissionType.DeleteTournament)
-                .GetById(tournamentId, cancellationToken);
+            var tournament = await query.GetById(tournamentId, cancellationToken);
             
             tournament.Delete(userId, DateTime.UtcNow);
             
